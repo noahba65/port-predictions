@@ -1,5 +1,3 @@
-
-
 # Extract start date for time series
 start_date <- port_data_2010_2014 %>%
   summarise(year = year(first(date)), 
@@ -9,7 +7,6 @@ start_date <- port_data_2010_2014 %>%
 
 # Create time series object
 ts_port_data <- ts(port_data_2010_2014$monthly_total_teus, start = start_date, frequency = 12)
-
 
 # Build ARIMA model
 model_arima <- auto.arima(ts_port_data)
@@ -28,10 +25,17 @@ forecast_df_3 <- create_forecast_df(forecast_3, h = 3)
 forecast_df_6 <- create_forecast_df(forecast_6, h = 6)
 forecast_df_12 <- create_forecast_df(forecast_12, h = 12)
 
-
-
+# Plot Forecasts
 plot_arima_forecast(forecast_df_3)
 plot_arima_forecast(forecast_df_6)
 plot_arima_forecast(forecast_df_12)
 
+# Calculate rmse for each forecast
+rmse_arima(forecast_df_3, 3)
+rmse_arima(forecast_df_6, 6)
+rmse_arima(forecast_df_12, 12)
 
+# Calculate mape for each forecast
+mape_arima(forecast_df_3, 3)
+mape_arima(forecast_df_6, 6)
+mape_arima(forecast_df_12, 12)

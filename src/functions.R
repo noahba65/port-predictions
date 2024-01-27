@@ -19,4 +19,29 @@ plot_arima_forecast <- function(forecast_df) {
     geom_vline(xintercept = as.Date("2014-12-31"), color = "red", linetype = "dashed") +
     xlim(min(forecast_df$date), max(forecast_df$date))
 }
-as.Date("2012-01-31")
+
+rmse_arima <- function(forecast_df, horizon){
+  # Extract the relevant period for RMSE calculation
+  horizon_period <- forecast_df %>% slice_tail(n = horizon)
+  
+  # Calculate the squared differences
+  squared_diffs <- (horizon_period$monthly_total_teus - horizon_period$predicted_teus) ^ 2
+  
+  # Calculate the RMSE
+  rmse <- sqrt(mean(squared_diffs))
+  
+  return(rmse)
+}
+
+mape_arima <- function(forecast_df, horizon) {
+  # Extract the relevant period for MAPE calculation
+  horizon_period <- forecast_df %>% slice_tail(n = horizon)
+  
+  # Calculate the absolute percentage differences
+  abs_perc_diffs <- abs((horizon_period$monthly_total_teus - horizon_period$predicted_teus) / horizon_period$monthly_total_teus)
+  
+  # Calculate the MAPE
+  mape <- mean(abs_perc_diffs, na.rm = TRUE) * 100
+  
+  return(round(mape, 2))
+}
