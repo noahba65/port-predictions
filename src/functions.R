@@ -1,28 +1,34 @@
-create_forecast_arima_df <- function(forecast, horizon) {
+create_forecast_arima_df <- function(forecast, h) {
+
+  forecast_end_date <- (as.Date("2016-09-30") + months(h) + days(1))
+  
   # Create df with date and actual values for the forecast period
-  forecast_df <- port_data_2015 %>%
-    filter(month(date) < horizon + 1) %>%
+  forecast_df <- port_test %>%
+    filter(date <= forecast_end_date) %>%
     mutate(predicted_teus = as.numeric(forecast$mean))
   
   # Create a data frame with training and forecast data
-  forecast_2010_2015 <- port_data_2010_2014 %>%
+  forecast_full_df <- port_train %>%
     mutate(predicted_teus = ifelse(row_number() == n(), monthly_total_teus, NA)) %>%
     rbind(forecast_df)
   
-  return(forecast_2010_2015)
+  return(forecast_full_df)
 }
 
-create_forecast_prophet_df <- function(forecast, horizon) {
+
+create_forecast_prophet_df <- function(forecast, h) {
   
-  predictied_values <- forecast %>% slice_tail(n = horizon) %>% pull(yhat)
+  predictied_values <- forecast %>% slice_tail(n = h) %>% pull(yhat)
+  
+  forecast_end_date <- (as.Date("2016-09-30") + months(h) + days(1))
   
   # Create df with date and actual values for the forecast period
-  forecast_df <- port_data_2015 %>%
-    filter(month(date) < horizon + 1) %>%
+  forecast_df <- port_test %>%
+    filter(date <= forecast_end_date) %>%
     mutate(predicted_teus = predictied_values)
   
   # Create a data frame with training and forecast data
-  forecast_2010_2015 <- port_data_2010_2014 %>%
+  forecast_2010_2015 <- port_train %>%
     mutate(predicted_teus = ifelse(row_number() == n(), monthly_total_teus, NA)) %>%
     rbind(forecast_df)
   
@@ -62,3 +68,48 @@ mape <- function(forecast_df, horizon) {
   
   return(round(mape, 2))
 }
+
+process_image <- function(file_name) {
+  
+  # Define the base path
+  base_path <- "/Users/noahanderson/Documents/GitHub/port-predictions/data/data_images"
+  
+  # Create the full image path
+  image_path <- paste0(base_path, "/", file_name)
+  
+  # Set up the OCR engine
+  eng <- tesseract()
+  
+  # Perform OCR on the image
+  ocr_result <- ocr(image_path, engine = eng)
+  
+  # Split the text into lines and remove the first two lines
+  lines <- unlist(strsplit(ocr_result, "\n"))
+  lines <- lines[-(1:2)]
+  
+  # Initialize vectors for months and values
+  months <- vector("character", length(lines))
+  second_to_last_values <- vector("character", length(lines))
+  
+  # Process each line
+  for (i in seq_along(lines)) {
+    components <- unlist(strsplit(lines[i], "\\s+"))
+    
+    # Extract the first element for the month
+    months[i] <- components[1]
+    
+    # Extract the second-to-last element
+    if (length(components) >= 2) {
+      second_to_last_values[i] <- components[length(components) - 1]
+    } else {
+      second_to_last_values[i] <- NA
+    }
+  }
+  
+  # Combine the extracted data into a dataframe and convert to numeric
+  df <- data.frame(Month = months, monthly_total_teus = second_to_last_values)
+  df$monthly_total_teus <- as.numeric(gsub(",", "", df$monthly_total_teus))
+  
+  return(df)
+}
+

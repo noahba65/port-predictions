@@ -1,12 +1,12 @@
 # Extract start date for time series
-start_date <- port_data_2010_2014 %>%
+start_date <- port_train %>%
   summarise(year = year(first(date)), 
             month = month(first(date))) %>%
   unlist() %>%
   as.numeric()
 
 # Create time series object
-ts_port_data <- ts(port_data_2010_2014$monthly_total_teus, start = start_date, frequency = 12)
+ts_port_data <- ts(port_train$monthly_total_teus, start = start_date, frequency = 12)
 
 # Build ARIMA model
 model_arima <- auto.arima(ts_port_data)
