@@ -7,3 +7,5 @@ source for la data https://data.lacity.org/browse?q=Port%20of%20Los%20Angeles%20
 
 source for GDP quarterly forecast https://www.philadelphiafed.org/surveys-and-data/rgdp
 
+
+Alex suggestions, intrest rate lags, oil price lags. Use oil prices from previous quarter. 
