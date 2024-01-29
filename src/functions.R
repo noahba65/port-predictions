@@ -69,10 +69,8 @@ mape <- function(forecast_df, horizon) {
   return(round(mape, 2))
 }
 
-process_image <- function(file_name) {
+process_image <- function(file_name, base_path) {
   
-  # Define the base path
-  base_path <- "/Users/noahanderson/Documents/GitHub/port-predictions/data/data_images"
   
   # Create the full image path
   image_path <- paste0(base_path, "/", file_name)
