@@ -1,6 +1,6 @@
 create_forecast_arima_df <- function(forecast, h) {
 
-  forecast_end_date <- (as.Date("2016-09-30") + months(h) + days(1))
+  forecast_end_date <- (forecast_cutoff + months(h) + days(1))
   
   # Create df with date and actual values for the forecast period
   forecast_df <- port_test %>%
@@ -16,32 +16,71 @@ create_forecast_arima_df <- function(forecast, h) {
 }
 
 
+# create_forecast_prophet_df <- function(forecast, h) {
+#   
+#   
+#   predictied_values <- forecast %>% slice_tail(n = h) %>% pull(yhat)
+#   
+#   forecast_end_date <- forecast_cutoff + months(h) 
+#   
+#   # Create df with date and actual values for the forecast period
+#   forecast_df <- port_test %>%
+#     filter(date < forecast_end_date) %>%
+#     mutate(predicted_teus = predictied_values)
+#   
+#   # Create a data frame with training and forecast data
+#   forecast_df_full <- port_train %>%
+#     mutate(predicted_teus = ifelse(row_number() == n(), monthly_total_teus, NA)) %>%
+#     rbind(forecast_df)
+#   
+#   
+#   return(forecast_df_full)
+# }
+# 
+# plot_forecast <- function(forecast_df) {
+#   ggplot(data = forecast_df) +
+#     geom_line(aes(x = date, y = monthly_total_teus)) +
+#     geom_line(aes(x = date, y = predicted_teus), color = "blue", linetype = "dashed") +
+#     #geom_vline(xintercept = as.Date("2014-12-31"), color = "red", linetype = "dashed") +
+#     xlim(min(forecast_df$date), max(forecast_df$date))
+# }
+
 create_forecast_prophet_df <- function(forecast, h) {
   
-  predictied_values <- forecast %>% slice_tail(n = h) %>% pull(yhat)
   
-  forecast_end_date <- (as.Date("2016-09-30") + months(h) + days(1))
+  predictied_values <- forecast %>% slice_tail(n = h) %>% select(yhat, yhat_lower, yhat_upper) 
+  
+  forecast_end_date <- forecast_cutoff + months(h) 
   
   # Create df with date and actual values for the forecast period
   forecast_df <- port_test %>%
-    filter(date <= forecast_end_date) %>%
-    mutate(predicted_teus = predictied_values)
+    filter(date < forecast_end_date) %>%
+    mutate(predicted_teus = predictied_values$yhat,
+           predicted_lower = predictied_values$yhat_lower,
+           predicted_upper = predictied_values$yhat_upper)
   
   # Create a data frame with training and forecast data
-  forecast_2010_2015 <- port_train %>%
-    mutate(predicted_teus = ifelse(row_number() == n(), monthly_total_teus, NA)) %>%
+  forecast_df_full <- port_train %>%
+    mutate(predicted_teus = ifelse(row_number() == n(), monthly_total_teus, NA),
+           predicted_lower = NA,
+           predicted_upper = NA) %>%
     rbind(forecast_df)
   
-  return(forecast_2010_2015)
+  
+  return(forecast_df_full)
 }
 
 plot_forecast <- function(forecast_df) {
   ggplot(data = forecast_df) +
-    geom_line(aes(x = date, y = monthly_total_teus)) +
-    geom_line(aes(x = date, y = predicted_teus), color = "blue", linetype = "dashed") +
-    #geom_vline(xintercept = as.Date("2014-12-31"), color = "red", linetype = "dashed") +
-    xlim(min(forecast_df$date), max(forecast_df$date))
+    geom_line(aes(x = date, y = monthly_total_teus), color = "grey") + # Actual TEUs in grey
+    geom_line(aes(x = date, y = predicted_teus), color = "blue", linetype = "dashed") + # Predicted TEUs in blue dashed line
+    geom_ribbon(aes(x = date, ymin = predicted_lower, ymax = predicted_upper), fill = "blue", alpha = 0.2) + # Confidence intervals in light blue
+    labs(title = "Monthly TEUs Forecast with Confidence Intervals",
+         x = "Date", y = "Monthly Total TEUs") +
+    theme_minimal() +
+    xlim(min(forecast_df$date, na.rm = TRUE), max(forecast_df$date, na.rm = TRUE)) # Adjusting x-axis limits
 }
+
 
 rmse <- function(forecast_df, horizon){
   # Extract the relevant period for RMSE calculation
